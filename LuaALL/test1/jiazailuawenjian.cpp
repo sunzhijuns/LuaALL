@@ -2,7 +2,7 @@
 /* 调用lua代码
 
 */
-#include "lua.hpp"
+#include "../lua.hpp"
 void jiazailuawenjia()
 {
 	lua_State *l = luaL_newstate();

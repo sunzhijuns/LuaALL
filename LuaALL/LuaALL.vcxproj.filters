@@ -16,6 +16,12 @@
     <Filter Include="Lua">
       <UniqueIdentifier>{23a7689b-b8e3-43f7-8e7d-df45b2992d74}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\test">
+      <UniqueIdentifier>{834ad840-766d-4e27-95a6-740ce8bc380a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="资源文件\lua_res">
+      <UniqueIdentifier>{1b0e8a8b-c178-4364-91ea-4fd2e46e9778}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -104,6 +110,9 @@
     </ClInclude>
     <ClInclude Include="lua.hpp">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="test1\jiazailuawenjian.h">
+      <Filter>源文件\test</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -212,5 +221,22 @@
     <ClCompile Include="lzio.c">
       <Filter>Lua</Filter>
     </ClCompile>
+    <ClCompile Include="test1\jiazailuawenjian.cpp">
+      <Filter>源文件\test</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="lua_res1\config_background.lua">
+      <Filter>资源文件\lua_res</Filter>
+    </None>
+    <None Include="lua_res1\config_w_h.lua">
+      <Filter>资源文件\lua_res</Filter>
+    </None>
+    <None Include="lua_res1\main.lua">
+      <Filter>资源文件\lua_res</Filter>
+    </None>
+    <None Include="lua_res1\printTable.lua">
+      <Filter>资源文件\lua_res</Filter>
+    </None>
   </ItemGroup>
 </Project>
