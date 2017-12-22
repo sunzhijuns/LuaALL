@@ -114,6 +114,9 @@
     <ClInclude Include="test1\jiazailuawenjian.h">
       <Filter>源文件\test</Filter>
     </ClInclude>
+    <ClInclude Include="test1\runluastr.h">
+      <Filter>源文件\test</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -222,6 +225,9 @@
       <Filter>Lua</Filter>
     </ClCompile>
     <ClCompile Include="test1\jiazailuawenjian.cpp">
+      <Filter>源文件\test</Filter>
+    </ClCompile>
+    <ClCompile Include="test1\runluastr.cpp">
       <Filter>源文件\test</Filter>
     </ClCompile>
   </ItemGroup>

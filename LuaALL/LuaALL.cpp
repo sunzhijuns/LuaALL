@@ -6,10 +6,12 @@
 using namespace std;
 #include "lua.hpp"
 #include"test1\jiazailuawenjian.h"
+#include "test1\runluastr.h"
 
 int main()
 {
-	jiazailuawenjia();
+	runluastr();
+	//jiazailuawenjia();
 	//char buff[255];
 	//int error;
 	//lua_State *L = luaL_newstate();
