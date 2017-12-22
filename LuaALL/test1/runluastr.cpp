@@ -83,3 +83,21 @@ int runluastr()
 	lua_close(L);
 	return 0;
 }
+/*
+本例中用到的新Lua C API是：
+void lua_newtable (lua_State *L);
+新建一个空的table并压入栈顶。
+void lua_settable (lua_State *L, int idx);
+lua_settable以table在栈中的索引作为参数，并将栈顶的key和value出栈，用这两个值修改table。
+void lua_gettable (lua_State *L, int idx);
+lua_gettable以table在栈中的索引作为参数，弹出栈顶的元素作为key，返回与key对应的value并压入栈顶。
+最后，Lua告别针对table提供了存取函数
+void lua_rawgeti (lua_State *L, int idx, int n)
+取得table[n]并放到栈顶，上例中69-70行的lua_pushnumber(L,i);lua_gettable(L,-2);可以用lua_rawgeti(L,-1)代替。
+lua_getfield (lua_State *L, int idx, const char *k)
+取得table.k并放到栈顶，上例中57-59行的lua_pushstring(L,"u");lua_gettable(L,-2);可以替换成lua_getfield(L,-1,"u")。
+void lua_setfield (lua_State *L, int idx, const char *k)
+把栈顶的数据作为value放入table.k中，上例中的形如lua_pushstring(L, "key");lua_pushstring(L, value);lua_settable(L, -3);可以改成lua_pushstring(L, value);lua_setfield(L,-2,"key");的形式。
+void lua_rawseti (lua_State *L, int idx, int n)
+把栈顶的数据作为value放入table[n]中
+*/
