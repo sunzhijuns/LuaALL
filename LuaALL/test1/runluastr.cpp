@@ -5,11 +5,13 @@ using namespace std;
 
 int runluastr()
 {
-	//Lua示例代码，使用table
+	//Lua示例代码，c使用lua函数
 	char *szLua_code =
-		"x = {} --用于存放结果的table\n "
-		"x[1],x[2] = string.gsub(c.Str, c.Mode, c.Tag) --x[1]里是结果，x[2]里是替换次数\n "
-		"x.u = string.upper(x[1])\n";
+		"function gsub(Str, Mode, Tag)\n"
+		"    a,b = string.gsub(Str, Mode, Tag)\n "
+		"    c = string.upper(a) \n"
+		"    return a,b,c --多个返回值 \n"
+		"end\n";
 	//Lua的字符串模式
 	char *szMode = "(%w+)%s*=%s*(%w+)";
 	//要处理的字符串
@@ -20,84 +22,58 @@ int runluastr()
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
 
-	//把一个tabele送给Lua
-	lua_newtable(L);    //新建一个table并压入栈顶
-	lua_pushstring(L, "Mode");// key
-	lua_pushstring(L, szMode);// value
-							  //设置newtable[Mode]=szMode
-							  //由于上面两次压栈，现在table元素排在栈顶往下数第三的位置
-	lua_settable(L, -3);
-	//lua_settable会自己弹出上面压入的key和value
-
-	lua_pushstring(L, "Tag");// key
-	lua_pushstring(L, szTag);// value
-	lua_settable(L, -3);    //设置newtable[Tag]=szTag
-
-	lua_pushstring(L, "Str");// key
-	lua_pushstring(L, szStr);// value
-	lua_settable(L, -3);    //设置newtable[Str]=szStr
-
-	lua_setglobal(L, "c"); //将栈顶元素（newtable）置为Lua中的全局变量c
-
-						   //执行
+	//执行
 	bool err = luaL_loadbuffer(L, szLua_code, strlen(szLua_code),
 		"demo") || lua_pcall(L, 0, 0, 0);
 	if (err)
 	{
-		//如果错误，显示
 		cerr << lua_tostring(L, -1);
-		//弹出栈顶的这个错误信息
 		lua_pop(L, 1);
 	}
 	else
 	{
 		//Lua执行后取得全局变量的值
-		lua_getglobal(L, "x");
-
-		//这个x应该是个table
-		if (lua_istable(L, -1))
+		lua_getglobal(L, "gsub");
+		if (lua_isfunction(L, -1))    //确认一下是个函数
 		{
-			//取得x.u,即x["u"]
-			lua_pushstring(L, "u");    //key
-									   //由于这次压栈，x处于栈顶第二位置
-			lua_gettable(L, -2);
-			//lua_gettable会弹出上面压入的key，然后把对应的value压入
-			//取得数据，然后从栈中弹出这个value
-			cout << "x.u = " << lua_tostring(L, -1) << endl;
-			lua_pop(L, 1);
-
-			//取得x[1]和x[2]
-			for (int i = 1; i <= 2; i++)
+			//依次放入三个参数
+			lua_pushstring(L, szStr);
+			lua_pushstring(L, szMode);
+			lua_pushstring(L, szTag);
+			//调用,我们有3个参数，要得到2个结果
+			//你可能注意到gsub函数返回了3个，不过我们只要2个，这没有问题
+			//没有使用错误处理回调，所以lua_pcall最后一个参数是0
+			if (0 != lua_pcall(L, 3, 2, 0))
 			{
-				//除了key是数字外，与上面的没什么区别
-				lua_pushnumber(L, i);
-				lua_gettable(L, -2);
-				cout << "x[" << i << "] = " << lua_tostring(L, -1) << endl;
+				//如果错误，显示
+				cerr << lua_tostring(L, -1);
 				lua_pop(L, 1);
 			}
+			else
+			{
+				//正确，得到两个结果，注意在栈里的顺序
+				cout << "a = " << lua_tostring(L, -2) << endl;
+				cout << "b = " << lua_tostring(L, -1) << endl;
+				//弹出这两个结果
+				lua_pop(L, 2);
+			}
 		}
-
-		//弹出栈顶的x
-		lua_pop(L, 1);
+		else
+		{
+			lua_pop(L, 1);
+		}
 	}
 	lua_close(L);
 	return 0;
 }
 /*
-本例中用到的新Lua C API是：
-void lua_newtable (lua_State *L);
-新建一个空的table并压入栈顶。
-void lua_settable (lua_State *L, int idx);
-lua_settable以table在栈中的索引作为参数，并将栈顶的key和value出栈，用这两个值修改table。
-void lua_gettable (lua_State *L, int idx);
-lua_gettable以table在栈中的索引作为参数，弹出栈顶的元素作为key，返回与key对应的value并压入栈顶。
-最后，Lua告别针对table提供了存取函数
-void lua_rawgeti (lua_State *L, int idx, int n)
-取得table[n]并放到栈顶，上例中69-70行的lua_pushnumber(L,i);lua_gettable(L,-2);可以用lua_rawgeti(L,-1)代替。
-lua_getfield (lua_State *L, int idx, const char *k)
-取得table.k并放到栈顶，上例中57-59行的lua_pushstring(L,"u");lua_gettable(L,-2);可以替换成lua_getfield(L,-1,"u")。
-void lua_setfield (lua_State *L, int idx, const char *k)
-把栈顶的数据作为value放入table.k中，上例中的形如lua_pushstring(L, "key");lua_pushstring(L, value);lua_settable(L, -3);可以改成lua_pushstring(L, value);lua_setfield(L,-2,"key");的形式。
-void lua_rawseti (lua_State *L, int idx, int n)
-把栈顶的数据作为value放入table[n]中
+http://blog.csdn.net/jiafu1115/article/details/8957488
+
+调用Lua子函数使用的是lua_pcall函数，我们的所有例子中都有这个函数，它的说明如下:
+lua_pcall (lua_State *L, int nargs, int nresults, int errfunc);
+作用：以保护模式调用一个函数。
+要调用一个函数请遵循以下协议：首先，要调用的函数应该被压入堆栈；接着，把需要传递给这个函数的参数按正序压栈；这是指第一个参数首先压栈。最后调用lua_pcall；
+nargs 是你压入堆栈的参数个数。当函数调用完毕后，所有的参数以及函数本身都会出栈。而函数的返回值这时则被压入堆栈。返回值的个数将被调整为 nresults 个，除非 nresults 被设置成 LUA_MULTRET。在这种情况下，所有的返回值都被压入堆栈中。 Lua 会保证返回值都放入栈空间中。函数返回值将按正序压栈（第一个返回值首先压栈），因此在调用结束后，最后一个返回值将被放在栈顶。
+如果有错误发生的话， lua_pcall 会捕获它，然后把单一的值（错误信息）压入堆栈，然后返回错误码。lua_pcall 总是把函数本身和它的参数从栈上移除。
+如果 errfunc 是 0 ，返回在栈顶的错误信息就和原始错误信息完全一致。否则，这个函数会被调用而参数就是错误信息。错误处理函数的返回值将被 lua_pcall 作为出错信息返回在堆栈上。
 */
