@@ -67,6 +67,12 @@ static const luaL_Reg loadedlibs[]{
 	{ NULL, NULL }
 };
 
+LUALIB_API void luaL_open_Files(lua_State *L)
+{
+	luaL_requiref(L, LUA_SZJ_WINDOWS_FILES, luaopen_Files, 1);
+	lua_pop(L, 1);
+}
+
 LUALIB_API void luaL_open_mylibs(lua_State *L)
 {
 	const luaL_Reg *lib;
@@ -94,7 +100,8 @@ int runluastr()
 		"end";
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
-	luaL_open_mylibs(L);
+	//luaL_open_mylibs(L);
+	luaL_open_Files(L);
 
 	bool err = luaL_loadstring(L, szLua_code) || lua_pcall(L, 0, 0, 0);
 	if (err)
