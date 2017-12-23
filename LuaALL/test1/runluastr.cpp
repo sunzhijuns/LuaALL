@@ -1,22 +1,29 @@
 #include"..\lua.hpp"
 #include <iostream>
 #include <string>
-#include <complex> //复数
 
 using namespace std;
 
-//C函数，做复数计算，输入实部，虚部。输出绝对值和角度
-int calcComplex(lua_State *L)
+//计算函数
+int count(lua_State *L)
 {
-	//从栈中读入实部，虚部
-	double r = luaL_checknumber(L, 1);
-	double i = luaL_checknumber(L, 2);
-	complex<double> c(r, i);
-	//存入绝对值
-	lua_pushnumber(L, abs(c));
-	//存入角度
-	lua_pushnumber(L, arg(c)*180.0 / 3.14159);
-	return 2;//两个结果
+	//得到UpValue
+	double m_ = lua_tonumber(L, lua_upvalueindex(1));
+	//更改UpValue
+	lua_pushnumber(L, ++m_);
+	lua_replace(L, lua_upvalueindex(1));
+	//返回结果（直接复制一份UpValue作为结果）
+	lua_pushvalue(L, lua_upvalueindex(1));
+	return 1;
+}
+//工厂函数，把一个数字和count函数关联打包后返回闭包。
+int newCount(lua_State *L)
+{
+	//计数器初值（即UpValue）
+	lua_pushnumber(L, 0);
+	//放入计算函数，告诉它与这个函数相关联的数据个数
+	lua_pushcclosure(L, count, 1);
+	return 1;//一个结果,即函数体
 }
 
 
@@ -24,15 +31,16 @@ int calcComplex(lua_State *L)
 int runluastr()
 {
 	char *szLua_code =
-		"v,a = CalcComplex(3,4) "
-		"print(v,a)";
+		"c1 = NewCount() "
+		"c2 = NewCount() "
+		"for i=1,5 do print(c1()) end "
+		"for i=1,5 do print(c2()) end";
 
 	lua_State *L = luaL_newstate();
 	luaL_openlibs(L);
 
 	//放入C函数
-	lua_pushcfunction(L, calcComplex);
-	lua_setglobal(L, "CalcComplex");
+	lua_register(L, "NewCount", newCount);
 
 	//执行
 	bool err = luaL_loadstring(L, szLua_code) || lua_pcall(L, 0, 0, 0);
@@ -48,15 +56,42 @@ int runluastr()
 /*
 http://blog.csdn.net/jiafu1115/article/details/8957488
 
-例四，在Lua代码中调用C++函数
+闭包(closure)
 
-能Lua代码中调用C函数对Lua来说至关重要，让Lua能真正站到C这个巨人的肩膀上。
-要写一个能让Lua调用的C函数，就要符合lua_CFunction定义：typedef int (*lua_CFunction) (lua_State *L);
-当Lua调用C函数的时候，同样使用栈来交互。C函数从栈中获取她的参数，调用结束后将结果放到栈中，并返回放到栈中的结果个数。
-这儿有一个重要的概念：用来交互的栈不是全局栈，每一个函数都有他自己的私有栈。当Lua调用C函数的时候，第一个参数总是在这个私有栈的index=1的位置。
+在编写用于Lua的C函数时，我们可能需要一些类似于面向对象的能力，比如我们想在Lua中使用象这样的一个计数器类:
+struct CCounter{
+CCounter()
+	:m_(0){}
+int count(){
+	return ++i;
+}
+private:
+	int m_;
+};
+这里如果我们仅仅使用lua_pushcfunction提供一个count函数已经不能满足要求(使用static? 不行，这样就不能同时使用多个计数器，并且如果程序中有多个Lua环境的话它也不能工作)。
+这时我们就需要一种机制让数据与某个函数关联，形成一个整体，这就是Lua中的闭包，而闭包里与函数关联的数据称为UpValue。
+使用Lua闭包的方法是定义一个工厂函数，由它来指定UpValue的初值和对应的函数，如：
+...
+//代码
 
-结果返回5 53.13...，和其它数据一样，给Lua代码提供C函数也是通过栈来操作的，因为lua_pushcfunction和lua_setglobal的 组合很常用，所以Lua提供了一个宏:
-#define lua_register(L,n,f) (lua_pushcfunction(L, (f)), lua_setglobal(L, (n)))
-这两句代码也就可写成lua_register(L,"CalcComplex",calcComplex);
+--------
+
+可以发现这两个计算器之间没有干扰，我们成功地在Lua中生成了两个“计数器类”。
+
+这里的关键函数是lua_pushcclosure，她的第二个参数是一个基本函数（例子中是count），第三个参数是UpValue的个数（例子中为 1）。在创建新的闭包之前，我们必须将关联数据的初始值入栈，在上面的例子中，我们将数字0作为初始值入栈。如预期的一样， lua_pushcclosure将新的闭包放到栈内，因此闭包作为newCounter的结果被返回。
+
+实际上，我们之前使用的lua_pushcfunction只是lua_pushcclosure的一个特例：没有UpValue的闭包。查看它的声明可 以知道它只是一个宏而已：
+
+#define lua_pushcfunction(L,f)    lua_pushcclosure(L, (f), 0)
+
+在count函数中，通过lua_upvalueindex(i)得到当前闭包的UpValue所在的索引位置，查看它的定义可以发现它只是一个简单的 宏：
+
+#define lua_upvalueindex(i)    (LUA_GLOBALSINDEX-(i))
+
+宏里的LUA_GLOBALSINDEX是一个伪索引，关于伪索引的知识请看下节
+
+
+
+
 
 */
